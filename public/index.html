@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Uji API LAGI.</title>
+<link rel="stylesheet" href="uji.css">
+</head>
+<body>
+<main>
+  <h1>Uji API LAGI.</h1>
+  <p class="ket">Halaman bantu untuk mencoba endpoint tanpa frontend. Token disimpan di memori halaman saja.</p>
+  <section>
+    <h2>Masuk</h2>
+    <form id="f-login">
+      <input name="email" type="email" placeholder="email" value="sari@lagi.test" required>
+      <input name="kataSandi" type="password" placeholder="kata sandi" required autocomplete="current-password">
+      <button>Masuk</button>
+      <span id="status-login">belum masuk</span>
+    </form>
+  </section>
+  <section>
+    <h2>Permintaan</h2>
+    <form id="f-req">
+      <select name="metode"><option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option></select>
+      <input name="path" placeholder="/barang?jenis=gratis" value="/barang?limit=3" required>
+      <textarea name="body" rows="5" placeholder='Body JSON (opsional), contoh: {"barangId":"3","metodeSerah":"ketemuan"}'></textarea>
+      <button>Kirim</button>
+    </form>
+    <div class="cepat" id="cepat"></div>
+  </section>
+  <section>
+    <h2>Respons <span id="status-res"></span></h2>
+    <pre id="hasil">—</pre>
+  </section>
+</main>
+<script src="uji.js"></script>
+</body>
+</html>

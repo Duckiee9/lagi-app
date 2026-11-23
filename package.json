@@ -1,0 +1,25 @@
+{
+  "name": "lagi-backend",
+  "version": "1.0.0",
+  "description": "LAGI. Sustainable Re-commerce Marketplace: API Express + PostgreSQL",
+  "type": "module",
+  "private": true,
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "db:sandi-demo": "node scripts/atur-sandi-demo.js",
+    "db:cek": "node scripts/cek-db.js",
+    "toko:verifikasi": "node scripts/verifikasi-toko.js",
+    "uji": "node --test test/*.test.js",
+    "uji:api": "node scripts/uji-api.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.13.1"
+  }
+}
