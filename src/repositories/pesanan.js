@@ -63,7 +63,7 @@ export async function buat(db, d) {
   const { rows } = await db.query(
     `INSERT INTO pesanan (barang_id, toko_id, pembeli_id, harga_saat_pesan, harga_baru_saat_pesan, metode_serah,
                           status, status_pembayaran, dikonfirmasi_pada)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8, CASE WHEN $7 = 'dikonfirmasi' THEN CURRENT_TIMESTAMP END) RETURNING id`,
+     VALUES ($1,$2,$3,$4,$5,$6,$7::varchar,$8, CASE WHEN $7 = 'dikonfirmasi' THEN CURRENT_TIMESTAMP END) RETURNING id`,
     [d.barangId, d.tokoId, d.pembeliId, d.harga, d.hargaBaru, d.metodeSerah, d.status, d.harga === 0 ? 'gratis' : 'belum-dibayar'],
   );
   return rows[0].id;
@@ -71,7 +71,7 @@ export async function buat(db, d) {
 
 export const ubahStatus = (db, id, status, tambahan = {}) =>
   db.query(
-    `UPDATE pesanan SET status = $2,
+    `UPDATE pesanan SET status = $2::varchar,
         dikonfirmasi_pada = CASE WHEN $2 = 'dikonfirmasi' THEN CURRENT_TIMESTAMP ELSE dikonfirmasi_pada END,
         siap_pada = CASE WHEN $2 = 'siap' THEN CURRENT_TIMESTAMP ELSE siap_pada END,
         selesai_pada = CASE WHEN $2 = 'selesai' THEN CURRENT_TIMESTAMP ELSE selesai_pada END,
