@@ -143,7 +143,7 @@ Pembatalan dan penolakan mengembalikan barang ke `aktif`. Pesanan selesai mengub
 | Metode | Path | Keterangan |
 |---|---|---|
 | GET | `/dashboard` | Login. Cakupan akun (pembeli: pesanannya; penjual: pesanan tokonya). |
-| GET | `/dashboard/platform` | Publik. Seluruh platform. |
+| GET | `/dashboard/platform` | Publik. Hanya agregat dampak platform. |
 
 ```json
 {
@@ -156,7 +156,7 @@ Pembatalan dan penolakan mengembalikan barang ke `aktif`. Pesanan selesai mengub
 }
 ```
 
-`uang` = pendapatan (penjual), total dibelanjakan (pembeli), atau total transaksi (platform), dihitung dari pesanan `selesai`. `hemat` = harga barang baru dikurangi harga bayar, `null` untuk penjual. `skorKesesuaian` bernilai `null` bila belum ada data. `perBulan` selalu 6 bulan terakhir. Faktor berat dan emisi berasal dari tabel `jenis_barang` dan hanya contoh.
+`uang` = pendapatan (penjual), total dibelanjakan (pembeli), , dihitung dari pesanan `selesai`. `hemat` = harga barang baru dikurangi harga bayar, `null` untuk penjual. `skorKesesuaian` bernilai `null` bila belum ada data. `perBulan` selalu 6 bulan terakhir. Contoh JSON di atas menunjukkan format akun. Endpoint publik hanya mengirim `cakupan`, `ringkas.barangBerpindah`, `ringkas.digratiskan`, estimasi berat dan emisi pada `dampak`, `perKategori`, serta `perBulan` dengan `bulan`, `label`, dan `total`. Faktor berat dan emisi berasal dari tabel `jenis_barang` dan hanya contoh.
 
 ## Kode galat umum
 

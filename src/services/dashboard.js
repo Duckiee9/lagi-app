@@ -22,4 +22,13 @@ export const akun = async (user) =>
     'akun', user.peran,
   );
 
-export const platform = async () => bentuk(await repo.ambil({ kolom: null }), 'platform', 'platform');
+export async function platform() {
+  const { ring, perBulan, perKategori } = await repo.ambil({ kolom: null });
+  return {
+    cakupan: 'platform',
+    ringkas: { barangBerpindah: ring.berpindah, digratiskan: ring.digratiskan },
+    dampak: { beratKg: Math.round(ring.berat * 10) / 10, emisiKgCo2e: Math.round(ring.emisi * 10) / 10 },
+    perBulan: perBulan.map(({ bulan, label, dijual, digratiskan }) => ({ bulan, label, total: dijual + digratiskan })),
+    perKategori,
+  };
+}

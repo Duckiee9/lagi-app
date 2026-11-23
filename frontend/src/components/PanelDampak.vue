@@ -3,7 +3,7 @@ import { computed, ref } from "vue";
 import { RouterLink } from "vue-router";
 import Ikon from "./Ikon.vue";
 import { num, rp0 } from "../lib/format.js";
-import { adalahPenjual, sesi } from "../lib/session.js";
+import { adalahPenjual } from "../lib/session.js";
 import { useKategori } from "../composables/useKategori.js";
 
 // data: respons GET /dashboard atau /dashboard/platform.
@@ -15,19 +15,17 @@ const penjual = computed(() => !platform.value && adalahPenjual());
 const r = computed(() => props.data.ringkas);
 
 const kartu = computed(() => {
-  const d = props.data;
   if (platform.value) {
     return [
       { n: "Barang berpindah tangan", v: num(r.value.barangBerpindah), h: "Dijual ditambah digratiskan.", hi: true, ik: "loop" },
-      { n: "Total hemat pembeli", v: rp0(r.value.hemat), h: "Selisih harga baru dan harga bayar.", ik: "bag" },
       { n: "Diberikan gratis", v: num(r.value.digratiskan), h: "Lewat Give It Forward.", ik: "gift" },
-      { n: "Simulasi CO₂e", v: `${num(d.dampak.emisiKgCo2e / 1000, 1)} ton`, h: "Menggunakan faktor contoh LAGI.", ik: "leaf" },
+      { n: "Berat barang dipakai ulang", v: `${num(props.data.dampak.beratKg, 1)} kg`, h: "Estimasi berdasarkan jenis barang.", ik: "leaf" },
     ];
   }
   if (penjual.value) {
     const s = r.value.skorKesesuaian;
     return [
-      { n: "Barang berpindah tangan", v: num(r.value.barangBerpindah), h: "Pesanan yang sudah selesai.", hi: true, ik: "loop" },
+      { n: "Barang terjual", v: num(r.value.dijual), h: "Penjualan yang sudah selesai.", hi: true, ik: "loop" },
       { n: "Pendapatan diterima", v: rp0(r.value.uang), h: "Dari pesanan selesai.", ik: "bag" },
       { n: "Diberikan gratis", v: num(r.value.digratiskan), h: "Barang Give It Forward.", ik: "gift" },
       { n: "Skor kesesuaian kartu", v: s ? `${s.persen}%` : "–", h: s ? `Dari ${s.jumlah} konfirmasi pembeli.` : "Belum ada konfirmasi pembeli.", ik: "shield" },
@@ -41,12 +39,12 @@ const kartu = computed(() => {
   ];
 });
 
-// Diagram batang bertumpuk: dijual + digratiskan per bulan.
+// Rincian dijual dan digratiskan hanya ditampilkan untuk penjual.
 const grafik = computed(() => {
-  const data = props.data.perBulan;
+  const data = props.data.perBulan.map((b) => ({ ...b, total: b.total ?? b.dijual + b.digratiskan }));
   const W = 560, H = 250, ml = 40, mr = 12, mt = 14, mb = 32;
   const iw = W - ml - mr, ih = H - mt - mb;
-  const maks = Math.max(1, ...data.map((d) => d.dijual + d.digratiskan));
+  const maks = Math.max(1, ...data.map((d) => d.total));
   let langkah = Math.pow(10, Math.floor(Math.log10(maks)));
   if (maks / langkah < 2) langkah /= 5;
   else if (maks / langkah < 5) langkah /= 2;
@@ -58,9 +56,9 @@ const grafik = computed(() => {
   const bw = Math.min(44, (iw / data.length) * 0.55);
   const batang = data.map((d, i) => {
     const cx = ml + (iw / data.length) * (i + 0.5);
-    const h1 = (d.dijual / atas) * ih;
-    const h2 = (d.digratiskan / atas) * ih;
-    const total = d.dijual + d.digratiskan;
+    const total = d.total;
+    const h2 = penjual.value ? (d.digratiskan / atas) * ih : 0;
+    const h1 = (total / atas) * ih - h2;
     return { ...d, cx, x: cx - bw / 2, bw, y1: y(0) - h1, h1, y2: y(0) - h1 - h2, h2, total, yTotal: y(total) - 5 };
   });
   return { W, H, ml, mr, garis, batang, dasar: y(0) };
@@ -68,28 +66,28 @@ const grafik = computed(() => {
 
 const bulanAktif = ref(null);
 const rincianBulan = computed(() => grafik.value.batang.find((b) => b.bulan === bulanAktif.value));
-const totalEnamBulan = computed(() => props.data.perBulan.reduce((a, b) => a + b.dijual + b.digratiskan, 0));
+const totalEnamBulan = computed(() => grafik.value.batang.reduce((a, b) => a + b.total, 0));
 const maksKategori = computed(() => Math.max(1, ...props.data.perKategori.map((k) => k.jumlah)));
 const labelKategori = (kode) => kat.value?.kategori.find((k) => k.kode === kode)?.label || kode;
 const st = computed(() => props.data.status);
 </script>
 
 <template>
-  <dl class="metrics">
+  <dl class="metrics" :class="{ 'impact-public-metrics': platform }">
     <div v-for="m in kartu" :key="m.n" class="metric" :class="{ hi: m.hi }">
       <dt><span class="tile"><Ikon :nama="m.ik" /></span>{{ m.n }}</dt>
       <dd><strong>{{ m.v }}</strong><p>{{ m.h }}</p></dd>
     </div>
   </dl>
 
-  <div class="dash-grid">
+  <div class="dash-grid" :class="{ 'impact-single': !penjual }">
     <section class="panel" style="align-content: start">
       <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px">
         <h2 style="font-size: 1.2rem">Barang berpindah tangan per bulan</h2>
-        <div class="legend"><span><i style="background: var(--brand)"></i>Dijual</span><span><i style="background: var(--tag)"></i>Digratiskan</span></div>
+        <div v-if="penjual" class="legend"><span><i style="background: var(--brand)"></i>Dijual</span><span><i style="background: var(--tag)"></i>Digratiskan</span></div>
       </div>
       <div class="chart-wrap impact-chart">
-        <svg :viewBox="`0 0 ${grafik.W} ${grafik.H}`" role="group" aria-label="Diagram batang jumlah barang dijual dan digratiskan per bulan">
+        <svg :viewBox="`0 0 ${grafik.W} ${grafik.H}`" role="group" aria-label="Diagram batang jumlah barang berpindah tangan per bulan">
           <g class="chart">
             <template v-for="g in grafik.garis" :key="g.v">
               <line class="grid" :x1="grafik.ml" :x2="grafik.W - grafik.mr" :y1="g.y" :y2="g.y" />
@@ -100,7 +98,7 @@ const st = computed(() => props.data.status);
               :key="b.bulan"
               class="impact-month"
               tabindex="0"
-              :aria-label="`${b.label}, ${b.dijual} dijual, ${b.digratiskan} digratiskan, total ${b.total}`"
+              :aria-label="penjual ? `${b.label}, ${b.dijual} dijual, ${b.digratiskan} digratiskan, total ${b.total}` : `${b.label}, ${b.total} barang`"
               @mouseenter="bulanAktif = b.bulan"
               @mouseleave="bulanAktif = null"
               @focus="bulanAktif = b.bulan"
@@ -119,12 +117,12 @@ const st = computed(() => props.data.status);
         </svg>
       </div>
       <p class="impact-detail">
-        <template v-if="rincianBulan"><strong>{{ rincianBulan.label }}</strong> · {{ rincianBulan.dijual }} dijual · {{ rincianBulan.digratiskan }} digratiskan</template>
+        <template v-if="rincianBulan"><strong>{{ rincianBulan.label }}</strong> <template v-if="penjual">· {{ rincianBulan.dijual }} dijual · {{ rincianBulan.digratiskan }} digratiskan</template><template v-else>· {{ rincianBulan.total }} barang</template></template>
         <template v-else>Enam bulan terakhir · <strong>{{ totalEnamBulan }} barang</strong></template>
       </p>
     </section>
 
-    <section class="panel" style="align-content: start">
+    <section v-if="penjual" class="panel" style="align-content: start">
       <h2 style="font-size: 1.2rem">Status pesanan</h2>
       <dl class="stat-list" style="margin: 0">
         <div><dt>Menunggu konfirmasi</dt><dd>{{ st.menunggu }}</dd></div>
@@ -133,7 +131,7 @@ const st = computed(() => props.data.status);
         <div><dt>Selesai</dt><dd>{{ st.selesai }}</dd></div>
         <div><dt>Dibatalkan atau ditolak</dt><dd>{{ st.batal }}</dd></div>
       </dl>
-      <RouterLink v-if="sesi.pengguna && !platform" class="btn btn-2 btn-sm" to="/pesanan">Buka pesanan<Ikon nama="arrow" /></RouterLink>
+      <RouterLink class="btn btn-2 btn-sm" to="/pesanan">Buka pesanan<Ikon nama="arrow" /></RouterLink>
     </section>
   </div>
 
@@ -156,7 +154,7 @@ const st = computed(() => props.data.status);
       <dl class="stat-list" style="margin: 0">
         <div><dt>Estimasi berat barang dipakai ulang</dt><dd>{{ num(data.dampak.beratKg, 1) }} kg</dd></div>
         <div><dt>Simulasi CO₂e</dt><dd>{{ num(data.dampak.emisiKgCo2e, 1) }} kg</dd></div>
-        <div><dt>Nilai barang diselamatkan</dt><dd>{{ rp0(data.dampak.nilaiDiselamatkan) }}</dd></div>
+        <div v-if="!platform"><dt>Nilai barang diselamatkan</dt><dd>{{ rp0(data.dampak.nilaiDiselamatkan) }}</dd></div>
       </dl>
       <p class="note-small">Cakupan: {{ platform ? "seluruh LAGI." : penjual ? "toko Anda" : "akun Anda" }}.</p>
     </section>
@@ -167,7 +165,7 @@ const st = computed(() => props.data.status);
     <ul class="impact-method">
       <li><strong>Berat barang dipakai ulang (kg)</strong> dihitung dengan menjumlahkan berat asumsi per jenis barang untuk setiap pesanan selesai. Berat di tabel adalah perkiraan per barang, tanpa penimbangan. Barang yang berpindah tangan hanya menjadi indikator potensi penundaan timbulan sampah, karena nasib barang tanpa transaksi tidak diketahui.</li>
       <li><strong>Simulasi CO₂e (kg)</strong> dihitung dengan menjumlahkan faktor contoh per jenis barang untuk setiap pesanan selesai. Model ini belum membandingkan skenario dasar dengan skenario pemanfaatan kembali, termasuk penggantian pembelian baru, pengiriman, perbaikan, dan akhir masa pakai. Angkanya berstatus simulasi internal.</li>
-      <li><strong>Penghematan pembeli</strong> adalah jumlah selisih harga acuan barang baru dan harga yang dibayar. <strong>Nilai barang diselamatkan</strong> adalah jumlah harga acuan barang baru pada pesanan selesai, termasuk barang gratis.</li>
+      <li v-if="!platform"><strong>Penghematan pembeli</strong> adalah jumlah selisih harga acuan barang baru dan harga yang dibayar. <strong>Nilai barang diselamatkan</strong> adalah jumlah harga acuan barang baru pada pesanan selesai, termasuk barang gratis.</li>
     </ul>
     <h3 class="impact-subtitle">Rujukan resmi</h3>
     <ul class="impact-method">
@@ -191,6 +189,10 @@ const st = computed(() => props.data.status);
 
 
 <style scoped>
+.impact-single { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 901px) {
+  .impact-public-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 .impact-chart { background: #faf8f4; border: 1px solid var(--line); border-radius: 14px; padding: 8px 6px 0; }
 .impact-highlight { fill: transparent; transition: fill 160ms ease; }
 .impact-month:hover .impact-highlight, .impact-month:focus-visible .impact-highlight { fill: #efe5dc; }
